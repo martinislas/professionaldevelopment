@@ -1,0 +1,26 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f5f6fa; color: #222; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 1.6rem; }
+h2 { margin-top: 32px; border-bottom: 2px solid #d9dcea; padding-bottom: 4px; }
+.card, .admin { background: #fff; border-radius: 10px; padding: 16px; margin: 14px 0; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.card-head h3 { margin: 0; flex: 1; }
+.badge { background: #e4e8ff; color: #3b4cca; border-radius: 99px; padding: 2px 10px; font-size: .8rem; }
+.notes { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0; }
+.sticky { width: 190px; min-height: 110px; padding: 12px; box-shadow: 2px 3px 6px rgba(0,0,0,.18); }
+.sticky p { margin: 0 0 8px; white-space: pre-wrap; }
+.note-form, .admin { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin h3 { width: 100%; margin: 0; }
+.file-field { display: flex; flex: 1 1 220px; flex-direction: column; gap: 4px; font-size: .9rem; }
+.file-field input { max-width: 100%; }
+.admin .instructions-field { flex: 1 1 100%; min-height: 72px; resize: vertical; }
+.date-field { display: flex; flex: 1 1 170px; flex-direction: column; gap: 4px; }
+.resource-instructions { margin: 12px 0 0; white-space: pre-wrap; }
+input, select, textarea { padding: 8px; border: 1px solid #ccd; border-radius: 6px; font: inherit; }
+.note-form textarea { flex: 1 1 260px; min-height: 40px; }
+button { padding: 8px 14px; border: 0; border-radius: 6px; background: #3b4cca; color: #fff; cursor: pointer; font: inherit; }
+button.link { background: none; color: #3b4cca; }
+button.danger { color: #c0392b; }
+.err { color: #c0392b; width: 100%; margin: 0; }
