@@ -41,10 +41,57 @@ function NoteForm({ resourceId, onSaved }) {
   );
 }
 
+function EditForm({ r, pin, onData, onDone }) {
+  const [f, setF] = useState({ title: r.title, instructions: r.instructions || '', type: r.type, url: r.url, date: r.date });
+  const [pdf, setPdf] = useState(null);
+  const [err, setErr] = useState('');
+  const hasPdf = f.url.startsWith('/uploads/');
+  const save = async () => {
+    try {
+      const form = new FormData();
+      Object.entries(f).forEach(([key, value]) => form.append(key, value));
+      if (pdf) form.append('file', pdf);
+      onData(await api('/resources/' + r.id, 'PUT', form, pin));
+      onDone();
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
+  return (
+    <div className="admin">
+      <h3>Edit item</h3>
+      <input placeholder="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+      <textarea className="instructions-field" placeholder="Instructions (optional)" value={f.instructions} onChange={(e) => setF({ ...f, instructions: e.target.value })} />
+      <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+        {TYPES.map((t) => <option key={t}>{t}</option>)}
+      </select>
+      {hasPdf ? (
+        <p>
+          Current PDF attached.{' '}
+          <button className="link danger" onClick={() => setF({ ...f, url: '' })}>Remove PDF</button>
+        </p>
+      ) : (
+        <input placeholder="Link (optional)" value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} />
+      )}
+      <label className="file-field">{hasPdf ? 'Replace PDF' : 'PDF file'}
+        <input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdf(e.target.files?.[0] || null)} />
+      </label>
+      <label className="date-field">Due date
+        <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+      </label>
+      <button onClick={save}>Save</button>
+      <button className="link" onClick={onDone}>Cancel</button>
+      {err && <p className="err">{err}</p>}
+    </div>
+  );
+}
+
 function Card({ r, notes, onData, pin }) {
+  const [editing, setEditing] = useState(false);
   const del = async () => {
     if (confirm('Delete this item and its notes?')) onData(await api('/resources/' + r.id, 'DELETE', null, pin));
   };
+  if (editing && pin) return <EditForm r={r} pin={pin} onData={onData} onDone={() => setEditing(false)} />;
   return (
     <section className="card">
       <div className="card-head">
@@ -55,6 +102,7 @@ function Card({ r, notes, onData, pin }) {
             Open resource ↗
           </a>
         )}
+        {pin && <button className="link" onClick={() => setEditing(true)}>Edit</button>}
         {pin && <button className="link danger" onClick={del}>Delete</button>}
       </div>
       {r.instructions && <p className="resource-instructions">{r.instructions}</p>}
@@ -115,6 +163,7 @@ function AdminPanel({ pin, setPin, onData }) {
 export default function App() {
   const [data, setData] = useState({ resources: [], notes: [] });
   const [pin, setPin] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => { api('/data').then(setData); }, []);
 
@@ -127,21 +176,102 @@ export default function App() {
   });
 
   return (
-    <main>
-      <header>
-        <h1>Professional Development Calendar</h1>
-        {!pin && <button className="link" onClick={askPin}>Admin</button>}
-      </header>
-      {pin && <AdminPanel pin={pin} setPin={setPin} onData={setData} />}
-      {Object.keys(months).length === 0 && <p>Nothing scheduled yet.</p>}
-      {Object.entries(months).map(([month, items]) => (
-        <div key={month}>
-          <h2>{month}</h2>
-          {items.map((r) => (
-            <Card key={r.id} r={r} pin={pin} onData={setData} notes={data.notes.filter((n) => n.resourceId === r.id)} />
-          ))}
+    <div className="site">
+      <header className="site-header">
+        <div className="site-header-inner">
+          <div className="site-topbar">
+            <span className="school">Berkeley International School</span>
+            {!pin && <button className="admin-btn" onClick={askPin}>Admin</button>}
+          </div>
+          <h1>Professional Development Hub</h1>
+          <p className="tagline">Empowering Educators. Inspiring Excellence. Transforming Learning.</p>
+          <p className="hover-hint">Hover to read more about this hub</p>
+          <div className="reveal">
+            <p className="intro">
+            Welcome to the Berkeley International School Professional Development Hub, a dedicated space for continuous learning,
+            collaboration, and professional growth. Here you will find Cambridge resources, webinars, training opportunities, teaching
+            strategies, and professional learning pathways designed to support excellence in teaching and learning.
+          </p>
+          </div>
+          <div className="managed">
+            <span>Managed by</span>
+            <strong>Martin Alejandro Islas</strong>
+            <em>Curriculum Coordinator &amp; Cambridge Examination Officer</em>
+          </div>
+          <ul className="pills">
+            <li>📚 Cambridge Resources</li>
+            <li>🎓 Professional Learning</li>
+            <li><a href="#calendar">📅 PD Calendar</a></li>
+            <li>💡 Teaching &amp; Learning</li>
+            <li>
+              <button className="pill-btn" aria-expanded={showWelcome} onClick={() => setShowWelcome((v) => !v)}>
+                👋 Welcome message
+              </button>
+            </li>
+          </ul>
         </div>
-      ))}
-    </main>
+      </header>
+
+      <main>
+        {showWelcome && (
+        <blockquote className="welcome">
+          <p>Welcome colleagues,</p>
+          <p>
+            This Professional Development Hub has been created to support our shared commitment to excellence in education. As
+            educators, we are lifelong learners, and this space will provide access to Cambridge webinars, training resources,
+            professional reading, and opportunities for reflection and collaboration.
+          </p>
+          <p>
+            I encourage you to explore the available resources and engage in professional learning that will enhance your practice
+            and positively impact student outcomes.
+          </p>
+          <footer>
+            <strong>Martin Alejandro Islas</strong>
+            <em>Curriculum Coordinator &amp; Cambridge Examination Officer</em>
+          </footer>
+        </blockquote>
+        )}
+
+        <h2 id="calendar" className="section-title">PD Calendar</h2>
+        {pin && <AdminPanel pin={pin} setPin={setPin} onData={setData} />}
+        {Object.keys(months).length === 0 && <p>Nothing scheduled yet.</p>}
+        {Object.entries(months).map(([month, items]) => (
+          <div key={month}>
+            <h2>{month}</h2>
+            {items.map((r) => (
+              <Card key={r.id} r={r} pin={pin} onData={setData} notes={data.notes.filter((n) => n.resourceId === r.id)} />
+            ))}
+          </div>
+        ))}
+      </main>
+
+      <footer className="site-footer">
+        <div className="site-footer-inner">
+          <div>
+            <h3>Berkeley International School</h3>
+            <p className="footer-sub">Professional Development Hub</p>
+            <p className="quote">“Exceptional schools are built by educators who never stop learning.”</p>
+            <p className="footer-person">
+              <strong>Professional Development Coordinator</strong><br />
+              Martin Alejandro Islas<br />
+              Curriculum Coordinator &amp; Cambridge Examination Officer<br />
+              📍 Phnom Penh, Cambodia
+            </p>
+          </div>
+          <div>
+            <h4>Our Vision</h4>
+            <p>
+              At Berkeley International School, we believe that professional growth is essential to student success. Through
+              continuous learning, collaboration, reflection, and innovation, we empower educators to provide outstanding learning
+              experiences for every student.
+            </p>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <span>Learning • Reflection • Collaboration • Excellence</span>
+          <span>© {new Date().getFullYear()} Berkeley International School</span>
+        </div>
+      </footer>
+    </div>
   );
 }

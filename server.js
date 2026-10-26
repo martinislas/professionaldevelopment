@@ -35,6 +35,12 @@ const getData = async () => ({
   notes: await Note.find({}, { _id: 0 }).sort({ created: 1 }).lean(),
 });
 
+const deletePdf = async (url) => {
+  if (!url?.startsWith('/uploads/')) return;
+  const files = await pdfs.find({ filename: path.basename(url) }).toArray();
+  await Promise.all(files.map((f) => pdfs.delete(f._id)));
+};
+
 const admin = (req, res, next) =>
   req.get('x-admin-pin') === PIN ? next() : res.status(401).json({ error: 'Wrong admin PIN' });
 
@@ -69,13 +75,46 @@ app.post('/api/resources', admin, (req, res) => {
   });
 });
 
+app.put('/api/resources/:id', admin, (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'PDF must be 20 MB or smaller' : err.message });
+    const { title, instructions, type, url, date } = req.body;
+    if (!title?.trim() || !date) return res.status(400).json({ error: 'Title and date required' });
+    if (req.file && req.file.buffer.subarray(0, 5).toString() !== '%PDF-')
+      return res.status(400).json({ error: 'The selected file is not a valid PDF' });
+
+    const resource = await Resource.findOne({ id: String(req.params.id) });
+    if (!resource) return res.status(404).json({ error: 'Item not found' });
+
+    let resourceUrl = url || '';
+    if (req.file) {
+      const filename = `${crypto.randomUUID()}.pdf`;
+      await new Promise((resolve, reject) =>
+        pdfs.openUploadStream(filename, { contentType: 'application/pdf' }).on('error', reject).on('finish', resolve).end(req.file.buffer)
+      );
+      resourceUrl = `/uploads/${filename}`;
+    } else if (resourceUrl.startsWith('/uploads/')) {
+      resourceUrl = resource.url; // stored PDFs can only change via a new upload
+    }
+
+    const oldUrl = resource.url;
+    Object.assign(resource, {
+      title: title.trim(),
+      instructions: typeof instructions === 'string' ? instructions.trim().slice(0, 2000) : '',
+      type: type || 'Video',
+      url: resourceUrl,
+      date,
+    });
+    await resource.save();
+    if (oldUrl !== resourceUrl) await deletePdf(oldUrl);
+    res.json(await getData());
+  });
+});
+
 app.delete('/api/resources/:id', admin, async (req, res) => {
   const resource = await Resource.findOneAndDelete({ id: String(req.params.id) });
   await Note.deleteMany({ resourceId: String(req.params.id) });
-  if (resource?.url?.startsWith('/uploads/')) {
-    const files = await pdfs.find({ filename: path.basename(resource.url) }).toArray();
-    await Promise.all(files.map((f) => pdfs.delete(f._id)));
-  }
+  await deletePdf(resource?.url);
   res.json(await getData());
 });
 
