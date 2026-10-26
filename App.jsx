@@ -3,6 +3,21 @@ import { useEffect, useState } from 'react';
 const COLORS = ['#fff3a3', '#ffd6e0', '#c9f0d8', '#cfe5ff', '#ffe0b8'];
 const TYPES = ['Video', 'Webinar', 'Article', 'Podcast', 'PDF', 'Other'];
 
+// Files live in public/policies/
+const POLICIES = [
+  ['Curriculum Policy (V4) 2025-2026', 'Curriculum Policy (V4) AY_ 2025-2026 .pdf'],
+  ['Curriculum Policy 2026-2027 (Draft)', 'BIS Curriculum Policy 2026 2027 [DRAFT].pdf'],
+  ['Graduation Policy (V2) 2026-2027', 'BIS Graduation Policy V2 AY 2026-2027.docx.pdf'],
+  ['Teacher Code of Conduct 2024-2025', 'Teacher Code of Conduct - AY 2024 2025.pdf'],
+  ['School Rules and Expectations 2023-2024', 'School Rules and Expections _ AY 2023-2024.pdf'],
+  ['School Uniform Guidelines 2023-2024', 'School Uniform Guidelines _ AY 2023-2024.pdf'],
+  ['Homework Guidelines 2024-2025', 'Homework guide lines _ AY 2024-2025.pdf'],
+  ['First Aid Procedures 2024-2025', 'First Aid Procedures AY 2024-2025.pdf'],
+  ['No Cellphone Policy 2023-2024', 'No Cellphone Policy 2023-2024.pdf'],
+  ['BYOD 2023-2024', 'BYOD 2023-2024.pdf'],
+  ['Plagiarism (Cambridge 0457)', '0457_Plagiarism_a.pdf'],
+];
+
 async function api(path, method = 'GET', body, pin) {
   const isFormData = body instanceof FormData;
   const res = await fetch('/api' + path, {
@@ -265,6 +280,17 @@ export default function App() {
               continuous learning, collaboration, reflection, and innovation, we empower educators to provide outstanding learning
               experiences for every student.
             </p>
+          </div>
+          <div>
+            <h4>Quick Links</h4>
+            <p className="footer-sub">School Policies</p>
+            <ul className="policy-list">
+              {POLICIES.map(([label, file]) => (
+                <li key={file}>
+                  <a href={`/policies/${encodeURIComponent(file)}`} target="_blank" rel="noreferrer">{label}</a>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <div className="footer-bottom">
