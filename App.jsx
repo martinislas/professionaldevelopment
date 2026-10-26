@@ -196,7 +196,7 @@ export default function App() {
           <div className="managed">
             <span>Managed by</span>
             <strong>Martin Alejandro Islas</strong>
-            <em>Curriculum Coordinator &amp; Cambridge Examination Officer</em>
+            <em>Curriculum Coordinator &amp; Cambridge Examinations Officer</em>
           </div>
           <ul className="pills">
             <li>📚 Cambridge Resources</li>
@@ -227,7 +227,7 @@ export default function App() {
           </p>
           <footer>
             <strong>Martin Alejandro Islas</strong>
-            <em>Curriculum Coordinator &amp; Cambridge Examination Officer</em>
+            <em>Curriculum Coordinator &amp; Cambridge Examinations Officer</em>
           </footer>
         </blockquote>
         )}
@@ -254,7 +254,7 @@ export default function App() {
             <p className="footer-person">
               <strong>Professional Development Coordinator</strong><br />
               Martin Alejandro Islas<br />
-              Curriculum Coordinator &amp; Cambridge Examination Officer<br />
+              Curriculum Coordinator &amp; Cambridge Examinations Officer<br />
               📍 Phnom Penh, Cambodia
             </p>
           </div>
