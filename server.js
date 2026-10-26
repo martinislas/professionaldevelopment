@@ -1,20 +1,16 @@
 import express from 'express';
-import fs from 'fs';
 import crypto from 'crypto';
 import path from 'path';
 import multer from 'multer';
 import mongoose from 'mongoose';
 import Note from './models/Note.js';
+import Resource from './models/Resource.js';
 
 try { process.loadEnvFile(); } catch {} // .env is optional
 
 const app = express();
 app.use(express.json());
 
-const DATA_DIR = process.env.DATA_DIR || '.';
-const FILE = path.join(DATA_DIR, 'data.json');
-const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
-fs.mkdirSync(DATA_DIR, { recursive: true });
 const PIN = process.env.ADMIN_PIN || '1234'; // set a real one: ADMIN_PIN=xxxx npm start
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -27,18 +23,15 @@ const upload = multer({
   },
 });
 
-// --- tiny storage layer: swap these two for SQLite later ---
-const load = () =>
-  fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, 'utf8')) : { resources: [], notes: [] };
-const save = (d) => fs.writeFileSync(FILE, JSON.stringify(d, null, 2));
-
 await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017', {
   dbName: process.env.MONGODB_DB || 'pd_calendar',
 });
 
-// Resources stay in data.json; notes live in MongoDB.
+// PDFs are stored in MongoDB GridFS, served at /uploads/<uuid>.pdf
+const pdfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'pdfs' });
+
 const getData = async () => ({
-  resources: load().resources,
+  resources: await Resource.find({}, { _id: 0 }).sort({ date: 1 }).lean(),
   notes: await Note.find({}, { _id: 0 }).sort({ created: 1 }).lean(),
 });
 
@@ -57,14 +50,14 @@ app.post('/api/resources', admin, (req, res) => {
 
     let resourceUrl = url || '';
     if (req.file) {
-      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
       const filename = `${crypto.randomUUID()}.pdf`;
-      fs.writeFileSync(path.join(UPLOAD_DIR, filename), req.file.buffer);
+      await new Promise((resolve, reject) =>
+        pdfs.openUploadStream(filename, { contentType: 'application/pdf' }).on('error', reject).on('finish', resolve).end(req.file.buffer)
+      );
       resourceUrl = `/uploads/${filename}`;
     }
 
-    const d = load();
-    d.resources.push({
+    await Resource.create({
       id: crypto.randomUUID(),
       title,
       instructions: typeof instructions === 'string' ? instructions.trim().slice(0, 2000) : '',
@@ -72,20 +65,16 @@ app.post('/api/resources', admin, (req, res) => {
       url: resourceUrl,
       date,
     });
-    save(d);
     res.json(await getData());
   });
 });
 
 app.delete('/api/resources/:id', admin, async (req, res) => {
-  const d = load();
-  const resource = d.resources.find((r) => r.id === req.params.id);
-  d.resources = d.resources.filter((r) => r.id !== req.params.id);
+  const resource = await Resource.findOneAndDelete({ id: String(req.params.id) });
   await Note.deleteMany({ resourceId: String(req.params.id) });
-  save(d);
   if (resource?.url?.startsWith('/uploads/')) {
-    const filename = path.basename(resource.url);
-    if (filename.endsWith('.pdf')) fs.rmSync(path.join(UPLOAD_DIR, filename), { force: true });
+    const files = await pdfs.find({ filename: path.basename(resource.url) }).toArray();
+    await Promise.all(files.map((f) => pdfs.delete(f._id)));
   }
   res.json(await getData());
 });
@@ -105,7 +94,13 @@ app.post('/api/notes', async (req, res) => {
 });
 
 // Serve the built React app in production
-app.use('/uploads', express.static(UPLOAD_DIR));
+app.get('/uploads/:file', async (req, res) => {
+  const name = req.params.file;
+  if (!/^[0-9a-f-]{36}\.pdf$/.test(name) || !(await pdfs.find({ filename: name }).hasNext()))
+    return res.status(404).end();
+  res.type('application/pdf');
+  pdfs.openDownloadStreamByName(name).on('error', () => res.end()).pipe(res);
+});
 app.use(express.static('dist'));
 app.get('*', (req, res) => res.sendFile(new URL('./dist/index.html', import.meta.url).pathname));
 
