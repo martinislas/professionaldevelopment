@@ -182,7 +182,16 @@ export default function App() {
 
   useEffect(() => { api('/data').then(setData); }, []);
 
-  const askPin = () => { const p = prompt('Admin PIN'); if (p) setPin(p); };
+  const askPin = async () => {
+    const p = prompt('Admin PIN');
+    if (!p) return;
+    try {
+      await api('/admin/check', 'POST', null, p);
+      setPin(p);
+    } catch {
+      alert('Wrong admin PIN');
+    }
+  };
 
   const months = {};
   [...data.resources].sort((a, b) => a.date.localeCompare(b.date)).forEach((r) => {

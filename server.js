@@ -11,7 +11,7 @@ try { process.loadEnvFile(); } catch {} // .env is optional
 const app = express();
 app.use(express.json());
 
-const PIN = process.env.ADMIN_PIN || '1234'; // set a real one: ADMIN_PIN=xxxx npm start
+const PIN = process.env.ADMIN_PIN; // required; admin is disabled when unset
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -42,7 +42,9 @@ const deletePdf = async (url) => {
 };
 
 const admin = (req, res, next) =>
-  req.get('x-admin-pin') === PIN ? next() : res.status(401).json({ error: 'Wrong admin PIN' });
+  PIN && req.get('x-admin-pin') === PIN ? next() : res.status(401).json({ error: 'Wrong admin PIN' });
+
+app.post('/api/admin/check', admin, (req, res) => res.json({ ok: true }));
 
 app.get('/api/data', async (req, res) => res.json(await getData()));
 
