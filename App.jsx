@@ -16,6 +16,8 @@ const POLICIES = [
   ['No Cellphone Policy 2023-2024', 'No Cellphone Policy 2023-2024.pdf'],
   ['BYOD 2023-2024', 'BYOD 2023-2024.pdf'],
   ['Plagiarism (Cambridge 0457)', '0457_Plagiarism_a.pdf'],
+  ['Child Protection and Safety Policy 2026-2027', "BIS Child Protection and Safety Policy AY '26-'27.pdf"],
+  ["Teachers' Support Policy 2024-2025", "[Template - Make a Copy FIRST!] Teacher's Support Policy AY 2024-2025.pdf"],
 ];
 
 async function api(path, method = 'GET', body, pin) {
