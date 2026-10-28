@@ -134,6 +134,12 @@ app.post('/api/notes', async (req, res) => {
   res.json(await getData());
 });
 
+app.delete('/api/notes/:id', admin, async (req, res) => {
+  const note = await Note.findOneAndDelete({ id: String(req.params.id) });
+  if (!note) return res.status(404).json({ error: 'Sticky note not found' });
+  res.json(await getData());
+});
+
 // Serve the built React app in production
 app.get('/uploads/:file', async (req, res) => {
   const name = req.params.file;

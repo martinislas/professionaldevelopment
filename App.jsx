@@ -27,6 +27,9 @@ async function api(path, method = 'GET', body, pin) {
     headers: { ...(!isFormData ? { 'Content-Type': 'application/json' } : {}), ...(pin ? { 'x-admin-pin': pin } : {}) },
     body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
   });
+  if (!res.headers.get('content-type')?.includes('application/json')) {
+    throw new Error('The server returned a webpage instead of API data. Restart the backend and try again.');
+  }
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || 'Something went wrong');
   return json;
@@ -105,8 +108,18 @@ function EditForm({ r, pin, onData, onDone }) {
 
 function Card({ r, notes, onData, pin }) {
   const [editing, setEditing] = useState(false);
+  const [noteDeleteError, setNoteDeleteError] = useState('');
   const del = async () => {
     if (confirm('Delete this item and its notes?')) onData(await api('/resources/' + r.id, 'DELETE', null, pin));
+  };
+  const deleteNote = async (note) => {
+    if (!confirm('Delete this sticky note?')) return;
+    try {
+      onData(await api('/notes/' + note.id, 'DELETE', null, pin));
+      setNoteDeleteError('');
+    } catch (e) {
+      setNoteDeleteError(e.message);
+    }
   };
   if (editing && pin) return <EditForm r={r} pin={pin} onData={onData} onDone={() => setEditing(false)} />;
   return (
@@ -128,9 +141,11 @@ function Card({ r, notes, onData, pin }) {
           <div key={n.id} className="sticky" style={{ background: COLORS[i % COLORS.length], transform: `rotate(${(i % 3) - 1}deg)` }}>
             <p>{n.text}</p>
             <small>— {n.name}</small>
+            {pin && <button className="link danger" onClick={() => deleteNote(n)}>Delete</button>}
           </div>
         ))}
       </div>
+      {noteDeleteError && <p className="err">{noteDeleteError}</p>}
       <NoteForm resourceId={r.id} onSaved={onData} />
     </section>
   );
